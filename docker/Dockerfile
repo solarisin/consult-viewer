@@ -36,8 +36,6 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-COPY ./src /opt/consult-viewer/
-
 # Create the docker user
 ARG userid=1000
 ARG groupid=1000
@@ -50,8 +48,11 @@ USER docker
 ENV HOME=/home/docker
 
 # Install PySide6 without specifying a version to get the latest
+COPY requirements.txt .
 RUN pip install --upgrade pip && \
-    pip install PySide6
+    pip install --upgrade -r requirements.txt && \
+    rm requirements.txt
 
+COPY ./src /opt/consult-viewer
 
-CMD [ "python", "/opt/consult-viewer/guitest.py" ]
+CMD [ "python", "/opt/consult-viewer/mainview.py" ]

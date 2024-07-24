@@ -1,4 +1,8 @@
 from abc import ABC, abstractmethod
+from random import randrange
+
+from PySide6.QtCore import Qt, QModelIndex, QAbstractTableModel
+from PySide6.QtGui import QColor
 
 
 class EcuParam(ABC):
@@ -140,3 +144,70 @@ class ConsultModel:
 
 
 ConsultInfo = ConsultModel()
+
+
+class ConsultParameterTableModel(QAbstractTableModel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._params = ConsultInfo.get_params()
+
+        self.input_data = []
+        self.mapping = {}
+        self.column_count = 4
+        self.row_count = len(self._params)
+
+        for i in range(self.row_count):
+            data_vec = [0] * self.column_count
+            for k in range(len(data_vec)):
+                if k % 2 == 0:
+                    data_vec[k] = i * 50 + randrange(30)
+                else:
+                    data_vec[k] = randrange(100)
+            self.input_data.append(data_vec)
+
+    def rowCount(self, parent=QModelIndex()):
+        return len(self.input_data)
+
+    def columnCount(self, parent=QModelIndex()):
+        return self.column_count
+
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int=...):
+        if role != Qt.ItemDataRole.DisplayRole:
+            return None
+
+        if orientation == Qt.Orientation.Horizontal:
+            if section % 2 == 0:
+                return "x"
+            else:
+                return "y"
+        else:
+            return str(section + 1)
+
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole:
+            return self.input_data[index.row()][index.column()]
+        elif role == Qt.ItemDataRole.EditRole:
+            return self.input_data[index.row()][index.column()]
+        # elif role == Qt.ItemDataRole.BackgroundRole:
+        #     for color, rect in self.mapping.items():
+        #         if rect.contains(index.column(), index.row()):
+        #             return QColor(color)
+        #     # cell not mapped return white color
+        #     return QColor(Qt.GlobalColor.white)
+        return None
+
+    def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
+        if index.isValid() and role == Qt.ItemDataRole.EditRole:
+            self.input_data[index.row()][index.column()] = float(value)
+            self.dataChanged.emit(index, index)
+            return True
+        return False
+
+    def flags(self, index):
+        return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsSelectable
+
+    # def add_mapping(self, color, area):
+    #     self.mapping[color] = area
+    #
+    # def clear_mapping(self):
+    #     self.mapping = {}
