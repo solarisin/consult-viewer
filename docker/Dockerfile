@@ -2,6 +2,8 @@
 
 FROM python:3
 
+SHELL ["/bin/bash", "-c"]
+
 # Set the working directory in the container
 RUN mkdir -p /opt/consult-viewer
 WORKDIR /opt/consult-viewer
@@ -46,13 +48,20 @@ RUN chown -R docker:docker /home/docker
 RUN chown -R docker:docker /opt/consult-viewer
 USER docker
 ENV HOME=/home/docker
+ENV PATH="${HOME}/.local/bin:${PATH}"
 
 # Install PySide6 without specifying a version to get the latest
-COPY requirements.txt .
-RUN pip install --upgrade pip && \
-    pip install --upgrade -r requirements.txt && \
-    rm requirements.txt
+RUN python3 -m pip install --upgrade pip && \
+    python3 -m pip install --user pipx && \
+    python3 -m pipx ensurepath
 
-COPY ./src /opt/consult-viewer
+RUN pipx install poetry
 
-CMD [ "python", "/opt/consult-viewer/mainview.py" ]
+COPY ./pyproject.toml /opt/consult-viewer/pyproject.toml
+COPY ./poetry.lock /opt/consult-viewer/poetry.lock
+
+RUN poetry install
+
+COPY ./src /opt/consult-viewer/src
+
+CMD [ "poetry", "run", "python", "src/mainview.py" ]
