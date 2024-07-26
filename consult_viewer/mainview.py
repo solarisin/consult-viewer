@@ -1,132 +1,16 @@
 import sys
 import logging
-from abc import ABCMeta, ABC, abstractmethod
-from typing import Callable
 
-from PySide6.QtCore import Signal, Slot, QCoreApplication, QObject, QSettings
-from PySide6.QtWidgets import QSizePolicy, QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, \
-    QCheckBox, QPlainTextEdit, QMessageBox, QTableView, QAbstractItemView, QGroupBox, QInputDialog
-from PySide6.QtGui import QFont, QAction
+from PySide6.QtCore import QSettings
+from PySide6.QtWidgets import QSizePolicy, QApplication, QMainWindow, QMessageBox, QInputDialog
+from PySide6.QtGui import QAction
 
 import PySide6QtAds as QtAds
 
-from consultmodel import ConsultInfo, ConsultParameterTableModel
-
-
-def resize_font(font: QFont, point_size: int):
-    f = QFont(font)
-    f.setPointSize(point_size)
-    return f
-
-
-#
-# Signals need to be contained in a QObject or subclass in order to be correctly
-# initialized.
-#
-class Signaller(QObject):
-    signal = Signal(str, logging.LogRecord)
-
-
-#
-# Output to a Qt GUI is only supposed to happen on the main thread. So, this
-# handler is designed to take a slot function which is set up to run in the main
-# thread. In this example, the function takes a string argument which is a
-# formatted log message, and the log record which generated it. The formatted
-# string is just a convenience - you could format a string for output any way
-# you like in the slot function itself.
-#
-# You specify the slot function to do whatever GUI updates you want. The handler
-# doesn't know or care about specific UI elements.
-#
-class QtHandler(logging.Handler):
-    def __init__(self, slot_func, *args, **kwargs):
-        super(QtHandler, self).__init__(*args, **kwargs)
-        self.signaller = Signaller()
-        self.signaller.signal.connect(slot_func)
-
-    def emit(self, record):
-        s = self.format(record)
-        self.signaller.signal.emit(s, record)
-
-
-class QABCMeta(ABCMeta, type(QWidget)):
-    pass
-
-
-class DockableView(ABC, metaclass=QABCMeta):
-    @abstractmethod
-    def initial_expanded_size(self) -> int:
-        pass
-
-
-class TableView(QWidget):
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        layout = QVBoxLayout(self)
-        table = QTableView(self)
-        table.setContentsMargins(0, 0, 0, 0)
-
-        # Create and populate the tableWidget
-        # table.setItemDelegate(StarDelegate())
-        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        table.setModel(ConsultParameterTableModel())
-        layout.addWidget(table)
-        self.setLayout(layout)
-
-
-class OptionsView(QWidget, DockableView):
-    def __init__(self, parent):
-        super().__init__(parent)
-        layout = QHBoxLayout(self)
-        param_gb = QGroupBox("ECU Parameters", self)
-        param_layout = QVBoxLayout(param_gb)
-        for param in ConsultInfo.get_params():
-            param_layout.addWidget(self.create_param_checkbox(param))
-        layout.addWidget(param_gb)
-        self.setLayout(layout)
-        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-
-    @staticmethod
-    def create_param_checkbox(param):
-        def param_state_changed(ecu_param, state):
-            logging.debug("State changed for param {} to {}".format(ecu_param.name, state))
-            ecu_param.enable(state)
-        check = QCheckBox(param.name)
-        check.setFont(resize_font(check.font(), 10))
-        check.setContentsMargins(0, 0, 0, 0)
-        check.stateChanged.connect(lambda state, p=param: param_state_changed(p, state == 2))
-        return check
-
-    def initial_expanded_size(self) -> int:
-        return self.layout().layout().sizeHint().width() + 20
-
-
-class LogView(QPlainTextEdit, DockableView):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.setReadOnly(True)
-        self.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
-        self.setFont(QFont("Courier New", 10))
-        # self.setMaximumBlockCount(1000)
-        self.handler = h = QtHandler(self.loghandler)
-        fs = "%(asctime)s %(levelname)s [%(filename)s:%(lineno)s] %(message)s"
-        formatter = logging.Formatter(fmt="%(asctime)s %(levelname)s [%(filename)s:%(lineno)s] %(message)s",
-                                      datefmt="%Y-%m-%d %H:%M:%S")
-        h.setFormatter(formatter)
-        logging.getLogger().addHandler(h)
-
-    @Slot(str, logging.LogRecord)
-    def loghandler(self, status, record):
-        self.append(status)
-
-    def append(self, text):
-        self.appendPlainText(text)
-        self.verticalScrollBar().setValue(self.verticalScrollBar().maximum())
-        QCoreApplication.processEvents()
-
-    def initial_expanded_size(self) -> int:
-        return self.layout().layout().sizeHint().width()
+from parametertable import ParameterTableView
+from options import OptionsView
+from statuslog import StatusLogView
+from dockutils import DockableView, create_and_dock_view
 
 
 # Subclass QMainWindow to customize your application's main window
@@ -271,29 +155,21 @@ class MainWindow(QMainWindow):
             self._dock_mgr.savePerspectives(self._perspective_settings_file)
 
     def create_dock_windows(self):
-        def create_and_dock_view(title, area, instantiate: Callable[[QtAds.CDockWidget], DockableView]):
-            dock = QtAds.CDockWidget(title, self)
-            dockable = instantiate(dock)
-            dock.setWidget(dockable)
-            # dock.setMinimumSizeHintMode(QtAds.CDockWidget.MinimumSizeHintFromDockWidget)
-            dock.setMinimumSizeHintMode(QtAds.CDockWidget.MinimumSizeHintFromContent)
-            if isinstance(area, QtAds.DockWidgetArea):
-                self._dock_mgr.addDockWidget(area, dock)
-            else:
-                container = self._dock_mgr.addAutoHideDockWidget(area, dock)
-                container.setSize(dockable.initial_expanded_size())
-                container.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-
-            self._windows_menu.addAction(dock.toggleViewAction())
-
         # set the table view as the central widget (the main view)
-        table_dock = QtAds.CDockWidget("Table", self)
-        table_dock.setWidget(TableView(table_dock))
+        table_dock = QtAds.CDockWidget("Parameter Table", self)
+        table_dock.setWidget(ParameterTableView(table_dock))
         table_dock.setMinimumSizeHintMode(QtAds.CDockWidget.MinimumSizeHintFromContent)
         self._dock_mgr.setCentralWidget(table_dock)
 
-        create_and_dock_view("Options", QtAds.SideBarRight, lambda d: OptionsView(d))
-        create_and_dock_view("Log", QtAds.BottomDockWidgetArea, lambda d: LogView(d))
+        # create the auto-hide dockable views
+        options_dock_view, options_dock_container = create_and_dock_view(self, self._dock_mgr, "Options",
+                                                                         QtAds.SideBarRight,
+                                                                         lambda d: OptionsView(d))
+        statuslog_dock_view, statuslog_dock_container = create_and_dock_view(self, self._dock_mgr, "Status Log",
+                                                                             QtAds.BottomDockWidgetArea,
+                                                                             lambda d: StatusLogView(d))
+        self._windows_menu.addAction(options_dock_view.toggleViewAction())
+        self._windows_menu.addAction(statuslog_dock_view.toggleViewAction())
 
 
 # Entrypoint

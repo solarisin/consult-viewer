@@ -3,7 +3,7 @@
   <component name="PoetryConfigService">
     <option name="poetryVirtualenvPaths">
       <set>
-        <option value="$USER_HOME$/.cache/pypoetry/virtualenvs/consult-viewer-XXoDEHmI-py3.10/bin/python" />
+        <option value="$PROJECT_DIR$/.venv/bin/python" />
       </set>
     </option>
   </component>

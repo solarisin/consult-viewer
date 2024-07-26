@@ -1,1 +1,5 @@
-/src/images_rc.py
+/consult_viewer/images_rc.py
+.venv/
+__pycache__/
+*.pyc
+.vscode/
