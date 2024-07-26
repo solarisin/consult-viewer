@@ -56,6 +56,9 @@ class MainWindow(QMainWindow):
         self.create_status_bar()
         self.create_dock_windows()
 
+        # connect options update to table view
+        self._options_view.parameterSelectionChanged.connect(self._table_view.update_data)
+
         self.setWindowTitle("Consult Viewer")
 
         logging.debug("Main window initialized.")
@@ -157,17 +160,20 @@ class MainWindow(QMainWindow):
     def create_dock_windows(self):
         # set the table view as the central widget (the main view)
         table_dock = QtAds.CDockWidget("Parameter Table", self)
-        table_dock.setWidget(ParameterTableView(table_dock))
+        self._table_view = ParameterTableView(table_dock)
+        table_dock.setWidget(self._table_view)
         table_dock.setMinimumSizeHintMode(QtAds.CDockWidget.MinimumSizeHintFromContent)
         self._dock_mgr.setCentralWidget(table_dock)
 
         # create the auto-hide dockable views
+        self._options_view = OptionsView()
         options_dock_view, options_dock_container = create_and_dock_view(self, self._dock_mgr, "Options",
                                                                          QtAds.SideBarRight,
-                                                                         lambda d: OptionsView(d))
+                                                                         self._options_view)
+        self._log_view = StatusLogView()
         statuslog_dock_view, statuslog_dock_container = create_and_dock_view(self, self._dock_mgr, "Status Log",
                                                                              QtAds.BottomDockWidgetArea,
-                                                                             lambda d: StatusLogView(d))
+                                                                             self._log_view)
         self._windows_menu.addAction(options_dock_view.toggleViewAction())
         self._windows_menu.addAction(statuslog_dock_view.toggleViewAction())
 

@@ -75,3 +75,9 @@ class ConsultDefinition:
 
     def get_parameters(self) -> list[EcuParam]:
         return self.parameters
+
+    def get_enabled_parameters(self) -> list[EcuParam]:
+        return [p for p in self.parameters if p.enabled]
+
+    def count_enabled_parameters(self) -> int:
+        return sum(1 for p in self.parameters if p.enabled)

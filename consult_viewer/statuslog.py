@@ -36,7 +36,7 @@ class QtHandler(logging.Handler):
 
 
 class StatusLogView(QPlainTextEdit, DockableView):
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.setReadOnly(True)
         self.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)

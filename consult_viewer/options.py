@@ -1,4 +1,6 @@
 import logging
+
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget, QCheckBox, QHBoxLayout, QVBoxLayout, QGroupBox, QSizePolicy
 import consult_interface as consult
 from dockutils import DockableView
@@ -6,7 +8,9 @@ from utility import resize_font
 
 
 class OptionsView(QWidget, DockableView):
-    def __init__(self, parent):
+    parameterSelectionChanged = Signal()
+
+    def __init__(self, parent=None):
         super().__init__(parent)
         layout = QHBoxLayout(self)
         param_selection = self.setup_parameter_selection()
@@ -19,6 +23,7 @@ class OptionsView(QWidget, DockableView):
             def param_state_changed(ecu_param, state):
                 logging.debug("State changed for param {} to {}".format(ecu_param.name, state))
                 ecu_param.enable(state)
+                self.parameterSelectionChanged.emit()
 
             check = QCheckBox(param.name)
             check.setFont(resize_font(check.font(), 10))
