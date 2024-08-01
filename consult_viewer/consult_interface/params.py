@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 
-
 class EcuParam(ABC):
     def __init__(self, name, unit_label="", scale=1.0, offset=0.0):
         self.name = name
@@ -63,8 +62,8 @@ class EcuParamDual(EcuParam):
         both = self.register_msb + self.register_lsb
         return bytes(both)
 
-    def get_register(self) -> bytes:
-        return bytes(self.register)
+    def get_register(self) -> bytes:        
+        return self.register_lsb
 
     def get_unscaled_value(self, frame):
         return (frame[self.register_msb] << 8) + frame[self.register_lsb]

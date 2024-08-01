@@ -8,8 +8,8 @@ import consult_interface as ci
 # 2024/07/31 13:39:33 socat[511425] N PTY is /dev/pts/10
 # 2024/07/31 13:39:33 socat[511425] N starting data transfer loop with FDs [5,5] and [7,7]
 
-write_port = serial.Serial('/dev/pts/9', baudrate=9600, timeout=None)
-read_port = serial.Serial('/dev/pts/10', baudrate=9600, timeout=None)
+write_port = serial.Serial('/dev/pts/1', baudrate=9600, timeout=None)
+read_port = serial.Serial('/dev/pts/2', baudrate=9600, timeout=None)
 
 write_port.write(b'\x5A\x0B\x5A\x01\x5A\x08\x5A\x0C\x5A\x0D\x5A\x03\x5A\x05\x5A\x09\x5A\x13\x5A\x16\x5A\x17\x5A\x1A\x5A\x1C\x5A\x21\xF0')
 
@@ -26,7 +26,17 @@ if incomingData:
 
 print()
 print('----------------------------')
-command = ci.params_to_command([ci.Definition.parameters[7]])
+param_id_list = [
+    ci.ParamID.VEHICLE_SPEED,
+    ci.ParamID.ENGINE_SPEED_HR,
+    ci.ParamID.COOLANT_TEMP,
+    ci.ParamID.BATTERY_VOLTAGE,
+    ci.ParamID.TPS,
+    ci.ParamID.ENGINE_SPEED_LR,
+    ci.ParamID.MAF_VOLTAGE,
+    ci.ParamID.O2_VOLTAGE_LH,
+]
+command = ci.params_to_command(param_id_list)
 for b in command:
     if b == 0x5A or b == 0xF0:
         print()
