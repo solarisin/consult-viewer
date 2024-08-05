@@ -1,6 +1,6 @@
 import serial
 import time
-import consult_interface as ci
+from consult_viewer import consult_interface as ci
 
 # used `socat -d -d pty,raw,echo=0 pty,raw,echo=0` to start a loopback
 # result:
