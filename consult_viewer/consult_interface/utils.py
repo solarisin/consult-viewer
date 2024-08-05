@@ -44,3 +44,14 @@ def command_to_params(command: bytes) -> list[EcuParam]:
             print(f'Exception converting command byte {command[i]} to parameter: {e}')
             raise e
     return params
+
+
+def scan_match(buf: bytes, match: bytes) -> (bool, bytearray):
+    match_len = len(match)
+    if len(buf) < match_len:
+        return False, buf
+    for idx in range(len(buf) - (match_len - 1)):
+        sub = buf[idx:idx + match_len]
+        if sub == match:
+            return True, buf[idx + match_len:]
+    return False, bytearray()

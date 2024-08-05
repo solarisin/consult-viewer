@@ -5,6 +5,7 @@ import serial
 import threading
 from timer import timer
 
+import consult_viewer.consult_interface as ci
 
 # base class for communication to the nissan consult UART interface over a usb serial connection
 class ConsultSerial(ABC):
@@ -84,17 +85,42 @@ class ConsultSerialImpl(ConsultSerial):
 class ConsultSerialMock(ConsultSerial):
     def __init__(self):
         super().__init__("mock")
+        self._initialized = False
+        self._input_buffer = bytearray()
+        self.output_buffer = bytearray()
 
-    def open(self):
+    def _open(self):
         pass
 
-    def close(self):
+    def _close(self):
         pass
 
-    def write(self, data):
-        pass
+    def _write(self, data):
+        # data being written to the mocked ecu's input buffer (append until a recognized command is found)
+        self._input_buffer += data
 
-    def read(self):
+        if not self._initialized:
+            # process the input buffer from start to end looking for the initialization command (0xFF, 0xFF, 0xEF)
+            self._initialized, self._input_buffer = scan_match(self._input_buffer, ci.Definition.init)
+            if not self._initialized:
+                # keep the last [init_len-1] bytes in the buffer in case the init command is split across two writes
+                self._input_buffer = self._input_buffer[-(len(ci.Definition.init)-1):]
+                return
+
+        # from here on check the bytearray from first byte to last byte
+        # look for the parameter delimiter (0x5A) immediately followed by a byte identifying the command
+        for i in range(len(self._input_buffer)):
+            if self._input_buffer[i] == ci.Definition.register_param:
+                if i + 1 < len(self._input_buffer):
+                    command = self._input_buffer[i + 1]
+                    self._input_buffer = self._input_buffer[i + 2:]
+                    self._process_command(command)
+                    break
+
+
+
+    def _read(self):
+        # data being read from the mocked ecu's output buffer
         pass
 
 

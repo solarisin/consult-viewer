@@ -18,7 +18,6 @@ class EcuParam(ABC):
         pass
 
     @abstractmethod
-    # test
     def get_register(self) -> int:
         """
         Get the register for this parameter, guaranteed to be a single byte. LSB is used for dual parameters
