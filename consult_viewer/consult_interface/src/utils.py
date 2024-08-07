@@ -47,6 +47,12 @@ def command_to_params(command: bytes) -> list[EcuParam]:
 
 
 def scan_match(buf: bytes, match: bytes) -> (bool, bytearray):
+    # enforce that buf and match are both bytes or bytearrays
+    if not isinstance(buf, bytes) and not isinstance(buf, bytearray):
+        raise TypeError(f"buf must be bytes or bytearray, not {type(buf)}")
+    if not isinstance(match, bytes) and not isinstance(match, bytearray):
+        raise TypeError(f"match must be bytes or bytearray, not {type(match)}")
+
     match_len = len(match)
     if len(buf) < match_len:
         return False, buf

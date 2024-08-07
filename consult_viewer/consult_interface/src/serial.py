@@ -7,6 +7,7 @@ from timer import timer
 
 import consult_viewer.consult_interface as ci
 
+
 # base class for communication to the nissan consult UART interface over a usb serial connection
 class ConsultSerial(ABC):
     def __init__(self, port: str):
@@ -101,7 +102,7 @@ class ConsultSerialMock(ConsultSerial):
 
         if not self._initialized:
             # process the input buffer from start to end looking for the initialization command (0xFF, 0xFF, 0xEF)
-            self._initialized, self._input_buffer = scan_match(self._input_buffer, ci.Definition.init)
+            self._initialized, self._input_buffer = ci.utils.scan_match(self._input_buffer, ci.Definition.init)
             if not self._initialized:
                 # keep the last [init_len-1] bytes in the buffer in case the init command is split across two writes
                 self._input_buffer = self._input_buffer[-(len(ci.Definition.init)-1):]
