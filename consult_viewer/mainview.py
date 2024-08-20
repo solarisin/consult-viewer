@@ -57,7 +57,7 @@ class MainWindow(QMainWindow):
         self.create_dock_windows()
 
         # connect options update to table view
-        self._options_view.parameterSelectionChanged.connect(self._table_view.update_data)
+        self._options_view.parameterSelectionChanged.connect(self._table_view.parameters_changed)
 
         self.setWindowTitle("Consult Viewer")
 
@@ -178,8 +178,7 @@ class MainWindow(QMainWindow):
         self._windows_menu.addAction(statuslog_dock_view.toggleViewAction())
 
 
-# Entrypoint
-if __name__ == "__main__":
+def main():
     app = QApplication(sys.argv)
 
     logging.basicConfig(
@@ -199,3 +198,7 @@ if __name__ == "__main__":
     window.show()
 
     app.exec()
+
+# Entrypoint
+if __name__ == "__main__":
+    main()
