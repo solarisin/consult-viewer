@@ -34,7 +34,7 @@ class MainWindow(QMainWindow):
         self._log_view = None
         self._options_view = None
 
-        self._perspective_settings_file = QSettings("cv_settings.cfg", QSettings.Format.IniFormat)
+        self._global_settings_file = QSettings("cv_settings.cfg", QSettings.Format.IniFormat)
 
         # setup dock manager
         QtAds.CDockManager.setConfigFlag(QtAds.CDockManager.FocusHighlighting, True)
@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
         self._dock_mgr = QtAds.CDockManager(self)
 
         # load perspectives
-        self._dock_mgr.loadPerspectives(self._perspective_settings_file)
+        self._dock_mgr.loadPerspectives(self._global_settings_file)
         self._current_perspective = ""
 
         # setup main window
@@ -60,8 +60,16 @@ class MainWindow(QMainWindow):
         self._options_view.parameterSelectionChanged.connect(self._table_view.parameters_changed)
 
         self.setWindowTitle("Consult Viewer")
+        self.restore_window_state()
 
         logging.debug("Main window initialized.")
+
+    # overrides
+
+    def closeEvent(self, event):
+        self.save_window_state()
+
+    # methods
 
     def about(self):
         QMessageBox.about(self, "About Dock Widgets",
@@ -129,6 +137,32 @@ class MainWindow(QMainWindow):
     def create_status_bar(self):
         self.statusBar().showMessage("Ready")
 
+    def save_window_state(self):
+        '''
+        Saves the dock manager state and the main window geometry
+        '''
+        self._global_settings_file.setValue("mainview/geometry", self.saveGeometry())
+        self._global_settings_file.setValue("mainview/state", self.saveState())
+        self._global_settings_file.setValue("mainview/dockingstate", self._dock_mgr.saveState())
+
+    def restore_window_state(self):
+        '''
+        Restores the dock manager and window geometry states
+        '''
+        geom = self._global_settings_file.value("mainview/geometry")
+        if geom is not None:
+            self.restoreGeometry(geom)
+        else:
+            self.setGeometry(100, 100, 800, 600)
+
+        state = self._global_settings_file.value("mainview/state")
+        if state is not None:
+            self.restoreState(state)
+
+        state = self._global_settings_file.value("mainview/dockingstate")
+        if state is not None:
+            self._dock_mgr.restoreState(state)
+
     def store_perspective(self):
         name, entered = QInputDialog.getText(self, "Save Perspective", "Enter unique name:")
         if not entered or len(name) == 0:
@@ -136,7 +170,7 @@ class MainWindow(QMainWindow):
 
         self._dock_mgr.addPerspective(name)
         logging.info(f"Added perspective '{name}'")
-        self._dock_mgr.savePerspectives(self._perspective_settings_file)
+        self._dock_mgr.savePerspectives(self._global_settings_file)
 
     def delete_perspective(self):
         perspective_names = self._dock_mgr.perspectiveNames()
@@ -155,7 +189,7 @@ class MainWindow(QMainWindow):
         if ok:
             self._dock_mgr.removePerspective(selected)
             logging.info(f"Removed perspective '{selected}'")
-            self._dock_mgr.savePerspectives(self._perspective_settings_file)
+            self._dock_mgr.savePerspectives(self._global_settings_file)
 
     def create_dock_windows(self):
         # set the table view as the central widget (the main view)
@@ -194,7 +228,6 @@ def main():
     sys.excepthook = handle_exception
 
     window = MainWindow()
-    window.resize(1600, 900)
     window.show()
 
     app.exec()
