@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (QApplication, QDialog, QDockWidget,
                                QFileDialog, QListWidget, QMainWindow,
                                QMessageBox, QTextEdit)
 
-import images_rc  # noqa: F401
+import rc.images.tools
 
 
 class MainWindow(QMainWindow):
